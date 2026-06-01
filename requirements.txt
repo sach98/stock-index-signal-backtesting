@@ -1,0 +1,10 @@
+yfinance==1.4.1
+numpy>=1.26,<3
+pandas>=2.2,<3
+scikit-learn>=1.5,<2
+matplotlib>=3.8,<4
+ta==0.11.0
+pyfolio-reloaded==0.9.9
+jupyterlab>=4,<5
+nbconvert>=7,<8
+ipykernel>=6,<7
