@@ -6,30 +6,75 @@ The central finding is intentionally conservative: after removing look-ahead lea
 
 The project tests MACD, RSI, SMA crossover, Bollinger Bands, Momentum, classical ML classifiers, a feed-forward neural network, and a combined signal across US/UK indices: S&P 500, Dow Jones Industrial Average, NASDAQ Composite, Russell 2000, FTSE 100, Cboe UK 100, and VIX.
 
-Current build status: results are generated. All four notebooks were executed end-to-end against live Yahoo Finance data (2013-01-01 to 2023-01-01, ~2,500 daily observations per index), and `results/results_table.csv` plus the charts under `results/charts/` are populated from that run. Re-run the notebooks in order to refresh the numbers against current data.
+Current build status: results regenerated 2026-07-22 after fixing a position-latching bug (see [Correction](#correction-position-latching-fixed-2026-07-22)). All four notebooks were executed end-to-end against cached Yahoo Finance data (2013-01-01 to 2023-01-01, roughly 2,500 daily observations per index), and `results/results_table.csv` plus the charts under `results/charts/` are populated from that run.
+
+The rule-based table can also be regenerated on its own, without running notebooks by hand:
+
+```bash
+python3 -m src.run_indicator_backtests
+python3 -m unittest discover -s tests
+```
 
 The table below reports two rows per index: the best technical-rule strategy by Sharpe, and the combined indicator-plus-neural-network signal. Returns are cumulative over the full sample. `gross_return` is before costs; `net_return` charges 0.1% per position change; `vs_buy_and_hold` is `net_return` minus the index's own buy-and-hold return (negative means the strategy trailed simply holding the index). The full 63-row table (all strategies for all indices) is in `results/results_table.csv`.
 
 | index | strategy | gross_return | net_return | ann_vol | Sharpe | max_drawdown | n_trades | vs_buy_and_hold |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| S&P 500 | Bollinger Bands | 1.581 | 1.578 | 0.176 | 0.539 | -0.339 | 1 | -0.047 |
-| S&P 500 | Combined signal | 0.182 | 0.180 | 0.256 | 0.216 | -0.339 | 1 | -0.011 |
-| Dow Jones Industrial Average | Bollinger Bands | 1.405 | 1.402 | 0.175 | 0.503 | -0.371 | 1 | -0.069 |
-| Dow Jones Industrial Average | Combined signal | 0.151 | 0.150 | 0.253 | 0.184 | -0.371 | 1 | -0.014 |
-| NASDAQ Composite | Momentum | 2.292 | 2.289 | 0.207 | 0.576 | -0.364 | 1 | -0.074 |
-| NASDAQ Composite | Combined signal | 0.152 | 0.151 | 0.296 | 0.159 | -0.364 | 1 | -0.017 |
-| Russell 2000 | Momentum | 0.933 | 0.931 | 0.223 | 0.296 | -0.431 | 1 | -0.086 |
-| Russell 2000 | Combined signal | 0.063 | 0.062 | 0.323 | 0.062 | -0.419 | 1 | 0.004 |
-| FTSE 100 | RSI | 0.218 | 0.217 | 0.157 | 0.125 | -0.366 | 1 | -0.019 |
-| FTSE 100 | Combined signal | -0.012 | -0.013 | 0.209 | -0.021 | -0.349 | 1 | -0.009 |
-| Cboe UK 100 | RSI | 0.222 | 0.221 | 0.156 | 0.128 | -0.372 | 1 | -0.023 |
-| Cboe UK 100 | Combined signal | -0.012 | -0.013 | 0.206 | -0.022 | -0.353 | 1 | -0.003 |
-| Cboe Volatility Index | Logistic Regression | 0.719 | 0.718 | 1.308 | 0.138 | -0.818 | 1 | 0.162 |
-| Cboe Volatility Index | Combined signal | 0.719 | 0.718 | 1.308 | 0.138 | -0.818 | 1 | 0.162 |
+| S&P 500 | Bollinger Bands | 1.459 | 1.337 | 0.155 | 0.548 | -0.286 | 51 | -0.289 |
+| S&P 500 | Combined signal | 0.230 | 0.094 | 0.218 | 0.138 | -0.317 | 117 | -0.097 |
+| Dow Jones Industrial Average | MACD | 1.077 | 0.708 | 0.097 | 0.553 | -0.172 | 196 | -0.764 |
+| Dow Jones Industrial Average | Combined signal | 0.565 | 0.403 | 0.219 | 0.516 | -0.257 | 109 | +0.239 |
+| NASDAQ Composite | Momentum | 1.445 | 0.986 | 0.120 | 0.571 | -0.199 | 208 | -1.377 |
+| NASDAQ Composite | Combined signal | 0.116 | -0.025 | 0.251 | -0.034 | -0.474 | 135 | -0.193 |
+| Russell 2000 | Bollinger Bands | 1.452 | 1.307 | 0.187 | 0.447 | -0.416 | 61 | +0.290 |
+| Russell 2000 | Combined signal | 0.409 | 0.261 | 0.264 | 0.294 | -0.311 | 111 | +0.203 |
+| FTSE 100 | RSI | 0.384 | 0.360 | 0.132 | 0.232 | -0.291 | 18 | +0.123 |
+| FTSE 100 | Combined signal | -0.041 | -0.135 | 0.188 | -0.258 | -0.223 | 103 | -0.131 |
+| Cboe UK 100 | Bollinger Bands | 0.479 | 0.406 | 0.141 | 0.241 | -0.346 | 51 | +0.162 |
+| Cboe UK 100 | Combined signal | -0.058 | -0.160 | 0.168 | -0.348 | -0.232 | 115 | -0.150 |
+| Cboe Volatility Index | Logistic Regression | 1.360 | 1.300 | 0.218 | 1.275 | -0.124 | 26 | +0.744 |
+| Cboe Volatility Index | Combined signal | -0.215 | -0.317 | 0.852 | -0.149 | -0.879 | 139 | -0.873 |
 
-The result is exactly the conservative one the design anticipates. The strongest technical rules post respectable standalone Sharpe ratios (0.5-0.6 on the large-cap US indices), but almost all of them trail their own buy-and-hold benchmark once you compare like-for-like, and the leakage-fixed machine-learning signals are weaker still. Out-of-sample balanced accuracy for next-day direction sits between 0.48 and 0.53 across every index and model (chance is 0.50; see `results/ml_classification_metrics.csv`) -- the models are essentially at coin-flip, which is the honest outcome once look-ahead bias is removed. The VIX rows are a special case: it is not an investable index and its "buy-and-hold" is meaningless, so its apparent out-performance should not be read as a tradable edge.
+The result is the conservative one the design anticipates. Across all 63 strategy/index
+runs, **13 beat their own buy-and-hold benchmark net of costs and 50 did not**, with a
+median shortfall of **-30.1%**. The strongest technical rules post respectable standalone
+Sharpe ratios (0.45 to 0.57 on the large-cap US indices) but mostly trail simply holding
+the index, and trading costs are a large part of why: NASDAQ Momentum turns a 1.445 gross
+return into 0.986 net across 208 position changes, giving up 46 points of return to
+friction alone.
 
-A note on `n_trades`: the rule and ML signals are long/flat (never short), positions are forward-filled, and the held position rarely flips over the test window, so the position-change count is small and `net_return` differs from `gross_return` by only the cost of that single rebalance. This is a property of the vectorized long/flat backtest, not a data error.
+Out-of-sample balanced accuracy for next-day direction sits between 0.48 and 0.53 across
+every index and model (chance is 0.50; see `results/ml_classification_metrics.csv`), so
+the models are essentially at coin-flip once look-ahead bias is removed.
+
+The VIX rows are a special case and should not be read as a tradable edge: VIX is not an
+investable index, so its buy-and-hold benchmark is meaningless. The single best Sharpe in
+the whole study (1.275, VIX Logistic Regression) is therefore also the least investable
+number in it.
+
+### Correction: position latching (fixed 2026-07-22)
+
+An earlier published version of this table reported `n_trades = 1` for all 63 rows, and
+explained it as a property of the vectorized long/flat backtest. **That explanation was
+wrong and the numbers were invalid.** `position_from_signal` forward-filled over zero:
+
+```python
+position = signal.replace(0, np.nan).ffill().fillna(0.0)   # bug
+```
+
+Because `0` is a genuine "be flat" instruction for the state-driven rules (MACD, SMA
+crossover, Momentum), replacing it with NaN and forward-filling latched the position long
+after the first entry signal and never exited. Every strategy silently collapsed into
+buy-and-hold with a different start date, which is exactly what a single trade per
+ten-year backtest should have signalled.
+
+The fix distinguishes the two signal conventions the strategies actually use: `NaN` means
+"no new instruction, hold", and `0` means "be flat". Trade counts now range from 3 to 339
+with a median of 117. `tests/test_backtest.py::TestPositionLatching` fails if the latch
+returns.
+
+The correction did not weaken the headline conclusion, it strengthened it: with the
+strategies actually trading, and paying costs to do so, they trail buy-and-hold by more
+than the broken version suggested.
 
 ## Methodology
 
@@ -60,9 +105,20 @@ Normalized price paths for the seven indices over the study window (growth of 1.
 
 ![US/UK index normalized price paths](results/charts/price_paths.png)
 
-S&P 500 machine-learning strategy equity curves, net of 0.1% costs. The classifier curves sit almost exactly on top of buy-and-hold because the models stay long nearly all the time and add no reliable timing edge once leakage is removed:
+S&P 500 machine-learning strategy equity curves, net of 0.1% costs, over the 2020-2023
+test period. All three classifiers finish below buy-and-hold: growth of 1.0 ends at
+roughly 1.18 for buy-and-hold against 1.10 (Random Forest), 0.88 (neural network) and
+0.78 (logistic regression). The one thing the models do achieve is a shallower drawdown
+through the March 2020 crash, because they were partly out of the market. They give that
+advantage back over the following two years:
 
 ![S&P 500 ML strategy equity curves vs buy-and-hold](results/charts/ml_equity_curves_sp500.png)
+
+> **Do not rank the two families against each other in one table.** The 35 rule-based
+> rows cover the full 2013-2023 sample. The 21 ML rows and 7 combined-signal rows are
+> out-of-sample only, so they cover 2020-2023. `results/results_table.csv` stacks all 63
+> in the same columns, and sorting the combined file by Sharpe compares a ten-year record
+> against a three-year one. Compare within a family, not across.
 
 ## Reproducibility
 

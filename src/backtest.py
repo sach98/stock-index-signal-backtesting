@@ -39,8 +39,25 @@ def prepare_price_frame(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def position_from_signal(signal: pd.Series) -> pd.Series:
-    """Convert raw signal values to lagged market positions."""
-    position = signal.replace(0, np.nan).ffill().fillna(0.0)
+    """
+    Convert raw signal values to lagged market positions.
+
+    Signal semantics, which differ by strategy family and must both be honoured:
+
+    * ``NaN`` means "no new instruction": hold whatever position is already on.
+      The event-driven rules (RSI, Bollinger) emit NaN on every day that is
+      neither an entry nor an exit trigger.
+    * ``0`` means "be flat": a genuine exit instruction. The state-driven rules
+      (MACD, SMA crossover, Momentum) emit 0 on every day they are not long.
+
+    Forward-filling over ``0`` collapses the second case into the first, which
+    latches the position long after the first entry and turns every strategy
+    into buy-and-hold. Only NaN is carried forward.
+
+    The final ``shift(1)`` is the look-ahead control: a signal computed from
+    today's close can only be traded from tomorrow.
+    """
+    position = signal.ffill().fillna(0.0)
     return position.shift(1).fillna(0.0).clip(-1, 1)
 
 
@@ -51,7 +68,10 @@ def apply_backtest(
 ) -> pd.DataFrame:
     """Apply a long/flat/short signal with one-period lag and transaction costs."""
     result = frame.copy()
-    aligned_signal = signal.reindex(result.index).fillna(0.0)
+    # NaN is preserved here on purpose. It carries the "hold" instruction that
+    # position_from_signal needs; filling it with 0.0 at this point would force
+    # RSI and Bollinger flat on every day that is neither an entry nor an exit.
+    aligned_signal = signal.reindex(result.index)
     result["signal"] = aligned_signal
     result["position"] = position_from_signal(aligned_signal)
     result["trade"] = result["position"].diff().abs().fillna(result["position"].abs())
