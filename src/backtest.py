@@ -101,8 +101,18 @@ def annualized_volatility(log_returns: pd.Series) -> float:
 def sharpe_ratio(log_returns: pd.Series) -> float:
     """Annualized Sharpe ratio using a zero risk free rate."""
     clean = log_returns.dropna()
+    if clean.empty:
+        return np.nan
     std = clean.std(ddof=0)
-    if clean.empty or std == 0 or np.isnan(std):
+    if np.isnan(std):
+        return np.nan
+    # A constant series has no volatility, but whether the floating-point
+    # residue cancels to exactly 0.0 depends on the summation order numpy picks,
+    # which is vectorised per architecture. It cancels on arm64 and does not on
+    # x86-64, so `std == 0` passed locally and failed in CI on the same numpy
+    # and pandas versions. Anything this far below the size of the returns is
+    # that residue, and dividing by it returns a finite number that is noise.
+    if std <= float(np.abs(clean).max()) * 1e-12:
         return np.nan
     return float((clean.mean() / std) * np.sqrt(TRADING_DAYS_PER_YEAR))
 

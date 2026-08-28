@@ -145,6 +145,21 @@ class TestMetrics(unittest.TestCase):
         r = pd.Series([0.001] * 50)
         self.assertTrue(np.isnan(sharpe_ratio(r)))
 
+    def test_sharpe_is_nan_when_volatility_is_only_rounding_residue(self):
+        # The constant-series test above only exercises this when numpy's
+        # summation happens to leave a residue, which is architecture
+        # dependent: it cancels to exactly 0.0 on arm64 and does not on
+        # x86-64, so that test passed locally and failed in CI. This one
+        # injects the residue directly, so the guard is checked everywhere.
+        r = pd.Series([0.001] * 49 + [0.001 + 1e-18])
+        self.assertGreater(r.std(ddof=0), 0.0)
+        self.assertTrue(np.isnan(sharpe_ratio(r)))
+
+    def test_sharpe_is_finite_for_genuine_volatility(self):
+        rng = np.random.default_rng(20260829)
+        r = pd.Series(rng.normal(0.0004, 0.01, 500))
+        self.assertTrue(np.isfinite(sharpe_ratio(r)))
+
     def test_empty_series_returns_nan(self):
         empty = pd.Series(dtype=float)
         self.assertTrue(np.isnan(cumulative_return(empty)))
