@@ -95,10 +95,10 @@ extended; both move the table.
 
 **What would change this recommendation.**
 
-1. **The multiple-testing correction is not done yet.** 63 combinations were tried and the
-   13 winners are not adjusted for that. Some of them are the expected yield of searching
-   63 times, and until a deflated Sharpe is computed nobody should know which. That work is
-   named in [Limitations](#limitations) rather than quietly omitted.
+1. **The multiple-testing correction is now done, and it strengthens this.** See
+   [Deflated Sharpe](#deflated-sharpe-what-survives-having-tried-63-things): **nothing
+   survives**, at either the conservative or the generous trial count. The 13 apparent
+   winners are consistent with the expected yield of searching 63 times.
 2. **The cost model is one flat number.** 0.1% per position change is a stand-in for
    spread, impact and commission that vary by index and by size. A materially lower cost
    would revive some of the higher-turnover strategies; a realistic impact model would kill
@@ -106,6 +106,59 @@ extended; both move the table.
 3. **A strategy with an economic rationale is a different question.** This tests indicators
    applied mechanically. It says nothing about a signal with a reason to exist, and finding
    that most mechanical rules fail after costs is not evidence that all timing fails.
+
+## Deflated Sharpe: what survives having tried 63 things
+
+13 of 63 combinations beat buy-and-hold. Searching 63 times produces winners even when
+nothing has skill, so the question is whether any of them survives the search.
+
+`src/deflated_sharpe.py` applies both corrections from Bailey and Lopez de Prado (2014),
+and the second is the one usually skipped:
+
+1. **Selection bias.** Under a null of no skill, the expected maximum Sharpe across N trials
+   is positive and grows with N. That expected maximum, not zero, is the bar.
+2. **Non-normality.** The probabilistic Sharpe ratio discounts a Sharpe earned with negative
+   skew and fat tails, because such a track record is less trustworthy than its headline
+   number suggests. Reporting only the first correction and calling the result a deflated
+   Sharpe overstates it.
+
+### The result
+
+| | Value |
+|---|---|
+| Trials compared | 63 |
+| Mean pairwise correlation between trials | 0.227 |
+| Effective independent trials | 4.19 |
+| Expected maximum Sharpe under the null, N = 63 | **0.937 annualised** |
+| Best strategy actually observed | Momentum on the NASDAQ, **0.571 annualised** |
+| **Strategies with DSR > 0.95** | **0 of 35** |
+| Same, at the generous effective N = 4 (bar 0.417) | **0 of 35** |
+
+**The best strategy in the table does not reach the bar that pure search would be expected
+to clear.** Its deflated Sharpe is 0.13, where 0.95 would be the usual threshold.
+
+**The conclusion holds at both ends of the trial count, which is the point of reporting
+both.** These 63 trials are correlated: the same seven indices appear under nine
+strategies, and the realised mean pairwise correlation is 0.227, implying about 4 effective
+independent tests rather than 63. Fewer effective trials means a *lower* bar, so N = 63 is
+the conservative choice and a sceptic could fairly call it over-correction. Recomputed at
+the effective N the bar falls from 0.937 to 0.417 annualised, and **still nothing
+survives**. A result that only held at the flattering end would not be worth stating.
+
+### What this does not cover
+
+Per-strategy DSR is computed for the **35 indicator strategies** whose return series
+regenerate from cached prices. The 21 machine-learning and 7 combined-signal rows come from
+notebooks whose series are not committed, so their skewness, kurtosis and sample length are
+unavailable. **They count toward N = 63**, because selection bias comes from the size of the
+search rather than from how much of it is reproducible, and they do not receive a DSR. The
+gap is stated rather than closed by assuming those 28 look like the 35.
+
+Reproduce with `python3 -m src.deflated_sharpe`, which needs the cached prices under
+`data/` (gitignored, rebuilt by `notebooks/01_data.ipynb`). The results are committed at
+[`results/deflated_sharpe.json`](results/deflated_sharpe.json) and
+[`results/deflated_sharpe.csv`](results/deflated_sharpe.csv), so the conclusion is
+checkable without rebuilding the cache, and `tests/test_deflated_sharpe.py` pins it.
 
 ## Methodology
 

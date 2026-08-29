@@ -8,3 +8,9 @@ pyfolio-reloaded==0.9.9
 jupyterlab>=4,<5
 nbconvert>=7,<8
 ipykernel>=6,<7
+
+# src/deflated_sharpe.py only, for the normal CDF and the sample moments behind
+# the probabilistic Sharpe ratio. Unpinned lower bound rather than an exact pin:
+# norm.ppf, norm.cdf, skew and kurtosis have been stable for years, unlike the
+# matplotlib pin above which the committed chart bytes genuinely depend on.
+scipy>=1.10
