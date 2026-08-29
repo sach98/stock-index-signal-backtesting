@@ -76,6 +76,37 @@ The correction did not weaken the headline conclusion, it strengthened it: with 
 strategies actually trading, and paying costs to do so, they trail buy-and-hold by more
 than the broken version suggested.
 
+## Recommendation
+
+**Decision: do not deploy any strategy in this table. Keep the harness and use it as the
+gate that strategies proposed elsewhere have to clear.** The deliverable here is the
+measurement apparatus, not a signal.
+
+**The numbers.** Across 63 strategy-index combinations, charged 0.1% per position change,
+**13 beat buy-and-hold and 50 did not**. The median combination trails buy-and-hold by
+**30.1%** over the sample. The best single result, Bollinger Bands on one index at +3.378,
+is the kind of number a deck would lead with, and it is exactly the number this
+recommendation exists to resist.
+
+**Owner: whoever signs off timing strategies**, which in most firms is model risk or
+investment governance rather than the desk proposing them. Re-run
+`python3 -m src.run_indicator_backtests` when the cost assumption changes or the sample is
+extended; both move the table.
+
+**What would change this recommendation.**
+
+1. **The multiple-testing correction is not done yet.** 63 combinations were tried and the
+   13 winners are not adjusted for that. Some of them are the expected yield of searching
+   63 times, and until a deflated Sharpe is computed nobody should know which. That work is
+   named in [Limitations](#limitations) rather than quietly omitted.
+2. **The cost model is one flat number.** 0.1% per position change is a stand-in for
+   spread, impact and commission that vary by index and by size. A materially lower cost
+   would revive some of the higher-turnover strategies; a realistic impact model would kill
+   more of them.
+3. **A strategy with an economic rationale is a different question.** This tests indicators
+   applied mechanically. It says nothing about a signal with a reason to exist, and finding
+   that most mechanical rules fail after costs is not evidence that all timing fails.
+
 ## Methodology
 
 The notebooks run as a four-step pipeline:
